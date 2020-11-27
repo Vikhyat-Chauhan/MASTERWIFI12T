@@ -3,10 +3,10 @@
 *  ChipId : NONE
 *  Date Created: 24/11/2020
 *  Date Latest Modified : 27/11/2020
-*  Version : 1.0
-*  Description: Adding NTP Client functionality to the device
-*  Updates : Added Scene Support to the system + Button Sleep Support + Timer and Scenen MQTT notification changes + Added Notification Support.
-*  Fixes : Fixed Serial Comminication and GroundNet API Issues.
+*  Version : 1.1
+*  Description: 
+*  Updates : Added Button and Switch Support.
+*  Fixes : Fixed Serial Comminication and GroundNet API Issues. 
 *  See: https://www.thenextmove.in
 *  The Relay writing function is not in this code. NO is on master.slave.relay[i].current_state = 0
 *  The Stable Clock speed for this device is 80Mhz i.e no overclocking.
@@ -176,9 +176,9 @@ typedef struct{
     int8_t RELAY_NUMBER = RELAY_FIX_NUMBER;
     int8_t FAN_NUMBER = FAN_FIX_NUMBER;
     int8_t SENSOR_NUMBER = SENSOR_FIX_NUMBER;
-    //int8_t BUTTON_PIN[BUTTON_FIX_NUMBER] = {2};
+    //int8_t BUTTON_PIN[BUTTON_FIX_NUMBER] = {12};
     //int8_t RELAY_PIN[RELAY_FIX_NUMBER] = {13,12,14,0};
-    const char* RELAY_SINRIC_ID[RELAY_MAX_NUMBER] = {"5faa1729b1c8c45d662209a6", "5faa1730b1c8c45d662209a8", "5faa1737b1c8c45d662209aa", "5faa173eb1c8c45d662209ad","5faa173eb1c8c45d662209ad"};
+    const char* RELAY_SINRIC_ID[RELAY_MAX_NUMBER] = {"5fc0aebeaedf812fa2c1be74", "5fc0aec5aedf812fa2c1be76", "5fc0aecdaedf812fa2c1be78", "5fc0aed5aedf812fa2c1be7b","5fc0aedfaedf812fa2c1be7d"};
     bool all_relay_change = false;
     bool all_fan_change = false;
     bool all_sensor_change = false;
@@ -235,7 +235,7 @@ typedef struct{
 
 typedef struct{
     const char* NAME = "MASTERWIFI12T";
-    const char* VERSION = "1.0";
+    const char* VERSION = "1.1";
     bool change = false;
     SYSTEM system;
     SLAVE slave;
