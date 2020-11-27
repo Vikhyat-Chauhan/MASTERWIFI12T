@@ -3,9 +3,9 @@
 *  ChipId : NONE
 *  Date Created: 24/11/2020
 *  Date Latest Modified : 27/11/2020
-*  Version : 1.1
+*  Version : 3.0
 *  Description: 
-*  Updates : Added Button and Switch Support.
+*  Updates : Added Button and Switch Support + Modified and Advanced Wifi Setup UI.
 *  Fixes : Fixed Serial Comminication and GroundNet API Issues. 
 *  See: https://www.thenextmove.in
 *  The Relay writing function is not in this code. NO is on master.slave.relay[i].current_state = 0
@@ -235,7 +235,7 @@ typedef struct{
 
 typedef struct{
     const char* NAME = "MASTERWIFI12T";
-    const char* VERSION = "1.1";
+    const char* VERSION = "3.0";
     bool change = false;
     SYSTEM system;
     SLAVE slave;

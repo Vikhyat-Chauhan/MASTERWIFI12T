@@ -519,7 +519,8 @@ String HomeHub::scan_networks(){
   
   //Serial.println("");
   
-  wifi_data = "<ul>";
+  //wifi_data = "<ul>";
+  wifi_data = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\" /><title>TNM Wifi Setup</title><script>function c(l,e) {console.log(l);document.getElementById('s').value = l.innerText || l.textContent;p = l.nextElementSibling.classList.contains(\"l\");document.getElementById('p').disabled = !p; if(p)document.getElementById('p').focus();return false;}</script><style>.c,body {text-align: center}div,input {padding: 5px;font-size: 1em}input {width: 95%}body {font-family: verdana}button {border: 0;border-radius: .3rem;background-color: #1fa3ec;color: #fff;line-height: 2.4rem;font-size: 1.2rem;width: 100%}a {color: #000;font-weight: 700;text-decoration: none}a:hover {color: #1fa3ec;text-decoration: underline}.q {height: 16px;margin: 0;padding: 0 5px;text-align: right;min-width: 38px}.q.q-0:after {background-position-x: 0}.q.q-1:after {background-position-x: -16px}.q.q-2:after {background-position-x: -32px}.q.q-3:after {background-position-x: -48px}.q.q-4:after {background-position-x: -64px}.q.l:before {background-position-x: -80px;padding-right: 5px}.ql .q {float: left}.qr .q {float: right}.qinv .q {-webkit-filter: invert(1);filter: invert(1)}.q:after,.q:before {content: '';width: 16px;height: 16px;display: inline-block;background-repeat: no-repeat;background-position: 16px 0;background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGAAAAAQCAMAAADeZIrLAAAAJFBMVEX///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADHJj5lAAAAC3RSTlMAIjN3iJmqu8zd7vF8pzcAAABsSURBVHja7Y1BCsAwCASNSVo3/v+/BUEiXnIoXkoX5jAQMxTHzK9cVSnvDxwD8bFx8PhZ9q8FmghXBhqA1faxk92PsxvRc2CCCFdhQCbRkLoAQ3q/wWUBqG35ZxtVzW4Ed6LngPyBU2CobdIDQ5oPWI5nCUwAAAAASUVORK5CYII=');}@media (-webkit-min-device-pixel-ratio: 2),(min-resolution: 192dpi) {.q:before,.q:after {background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALwAAAAgCAMAAACfM+KhAAAALVBMVEX///8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADAOrOgAAAADnRSTlMAESIzRGZ3iJmqu8zd7gKjCLQAAACmSURBVHgB7dDBCoMwEEXRmKlVY3L//3NLhyzqIqSUggy8uxnhCR5Mo8xLt+14aZ7wwgsvvPA/ofv9+44334UXXngvb6XsFhO/VoC2RsSv9J7x8BnYLW+AjT56ud/uePMdb7IP8Bsc/e7h8Cfk912ghsNXWPpDC4hvN+D1560A1QPORyh84VKLjjdvfPFm++i9EWq0348XXnjhhT+4dIbCW+WjZim9AKk4UZMnnCEuAAAAAElFTkSuQmCC');background-size: 95px 16px;}}input:disabled {opacity: 0.5;}</style></head><body><!-- classes, left/right invert --><div class=\"qr\" style='text-align:left;display:inline-block;min-width:260px;'>";
   for (int i = 0; i < network_available_number; ++i)
     {
       // Print SSID and RSSI for each network found
@@ -528,6 +529,51 @@ String HomeHub::scan_networks(){
       Serial.println((WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*");
       */
       // Print SSID and RSSI for each network found
+      wifi_data += "<div><a href='#p' onclick='c(this)'>";
+      wifi_data += String(WiFi.SSID(i)); 
+      int strength = (int((WiFi.RSSI(i)))*(-1)); 
+      if((0<=strength) && (strength<20)){
+        if((WiFi.encryptionType(i) == ENC_TYPE_NONE)){
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-4'></div></div><br/>";
+        }
+        else{
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-4 l'></div></div><br/>";
+        }
+      }
+      else if((20<=strength) && (strength<40)){
+        if((WiFi.encryptionType(i) == ENC_TYPE_NONE)){
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-3'></div></div><br/>";
+        }
+        else{
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-3 l'></div></div><br/>";
+        }
+      }
+      else if((40<=strength) && (strength<60)){
+        if((WiFi.encryptionType(i) == ENC_TYPE_NONE)){
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-2'></div></div><br/>";
+        }
+        else{
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-2 l'></div></div><br/>";
+        }
+      }
+      else if((60<=strength) && (strength<80)){
+        if((WiFi.encryptionType(i) == ENC_TYPE_NONE)){
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-1'></div></div><br/>";
+        }
+        else{
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-1 l'></div></div><br/>";
+        }
+      }
+      else if((80<=strength) && (strength<=100)){
+        if((WiFi.encryptionType(i) == ENC_TYPE_NONE)){
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-0'></div></div><br/>";
+        }
+        else{
+          wifi_data += "</a><div role='img' aria-label='88%' title='88%' class='q q-0 l'></div></div><br/>";
+        }
+      }
+      
+      /*
       wifi_data += "<li>";
       wifi_data +=i + 1;
       wifi_data += ": ";
@@ -536,7 +582,7 @@ String HomeHub::scan_networks(){
       wifi_data += WiFi.RSSI(i);
       wifi_data += ")";
       wifi_data += (WiFi.encryptionType(i) == ENC_TYPE_NONE)?" ":"*";
-      wifi_data += "</li>";
+      wifi_data += "</li>"; */
       //Comparator
       int test_counter = 0;
       String current_wifi = WiFi.SSID(i);
@@ -550,7 +596,8 @@ String HomeHub::scan_networks(){
         master.system.flag.saved_wifi_present = true;
       }
     }
-    wifi_data += "</ul>";
+    wifi_data += "<form id=\"wmform\" method='get' action='a'><input id='s' name='ssid' length=32 placeholder='SSID'><br/><input id='p' name='pass' length=64 type='password' placeholder='password'><br/><br/><br/><button type='submit'>save</button></form><br/><div class=\"c\"><a href=\"/wifisetup\">Scan</a></div></div></body></html>";
+    //wifi_data += "</ul>";
     return wifi_data;
 }
 
@@ -1442,6 +1489,18 @@ String HomeHub::mdns_input_handler(String req){
   }
   if(req == "")
   {
+    //IPAddress ip = WiFi.softAPIP();
+    //String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
+    s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>Welcome to the world of TNM"; /*
+    s += ipStr;
+    s += "<p>";
+    s += _wifi_data;
+    s += "<form method='get' action='a'><label>SSID: </label><input name='ssid' length=32><input name='pass' length=64><input type='submit'></form>";
+    */s += "</html>\r\n\r\n";
+    HomeHub_DEBUG_PRINT("Sending 200");
+  }
+  else if(req == "wifisetup")
+  {/*
     IPAddress ip = WiFi.softAPIP();
     String ipStr = String(ip[0]) + '.' + String(ip[1]) + '.' + String(ip[2]) + '.' + String(ip[3]);
     s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>Hello from ESP8266 at ";
@@ -1449,7 +1508,8 @@ String HomeHub::mdns_input_handler(String req){
     s += "<p>";
     s += _wifi_data;
     s += "<form method='get' action='a'><label>SSID: </label><input name='ssid' length=32><input name='pass' length=64><input type='submit'></form>";
-    s += "</html>\r\n\r\n";
+    s += "</html>\r\n\r\n"; */
+    s += _wifi_data;
     HomeHub_DEBUG_PRINT("Sending 200");
   }
   else if ( req.startsWith("a?ssid=") ) {
@@ -1470,9 +1530,7 @@ String HomeHub::mdns_input_handler(String req){
     HomeHub_DEBUG_PRINT("writing eeprom ssid:");
     save_wifi_data(qsid,qpass);
       s = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>";
-      s += "Successfully connected";
-      s += req;
-      s += "<p> saved to eeprom... reset to boot into new wifi</html>\r\n\r\n";
+      s += "Press Next to Continue.</html>\r\n\r\n";
     WiFi.disconnect();
   }
   else if(sub1 == "sensor"){ //Example of handiling incomming requests : sensor/
