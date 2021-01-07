@@ -3,13 +3,12 @@
 *  ChipId : NONE
 *  Date Created: 24/11/2020
 *  Date Latest Modified : 08/01/2021
-*  Version : 4.0
+*  Version : 5.0
 *  Description: 
-*  Updates : Added Button and Switch Support + Modified and Advanced Wifi Setup UI.
-*  Fixes : Fixed Serial Comminication and GroundNet API Issues. 
+*  Updates : Added Sinric Alexa Script via MQTT Credentials.
+*  Fixes : Increased Scene and Timer data to max 4
 *  See: https://www.thenextmove.in
 *  The Relay writing function is not in this code. NO is on master.slave.relay[i].current_state = 0
-*  The Stable Clock speed for this device is 80Mhz i.e no overclocking.
 */
 
 #ifndef HomeHub_h
@@ -31,17 +30,17 @@
 #define BUTTON_TYPE true
 
 //timer
-#define TIMER_NUMBER 2
-#define TIMER_MEMSPACE 300
+#define TIMER_NUMBER 4
+#define TIMER_MEMSPACE 124
 
 //Scene
-#define SCENE_NUMBER 2
-#define SCENE_MEMSPACE 200
+#define SCENE_NUMBER 4
+#define SCENE_MEMSPACE 104  //250
 
 //Relay
 #define RELAY_FIX_NUMBER 4
 #define RELAY_MAX_NUMBER 5
-#define RELAY_MEMSPACE 400
+#define RELAY_MEMSPACE 100
 
 //Fan
 #define FAN_FIX_NUMBER 0
@@ -49,7 +48,7 @@
 
 //Sensor
 #define SENSOR_FIX_NUMBER 0
-#define SENSOR_MAX_NUMBER 1
+#define SENSOR_MAX_NUMBER 0
 
 //Button
 #define BUTTON_FIX_NUMBER 1
@@ -178,6 +177,7 @@ typedef struct{
     int8_t SENSOR_NUMBER = SENSOR_FIX_NUMBER;
     //int8_t BUTTON_PIN[BUTTON_FIX_NUMBER] = {12};
     //int8_t RELAY_PIN[RELAY_FIX_NUMBER] = {13,12,14,0};
+    const char* RELAY_SINRIC_ID[RELAY_MAX_NUMBER] ;
     bool all_relay_change = false;
     bool all_fan_change = false;
     bool all_sensor_change = false;
@@ -237,7 +237,7 @@ typedef struct{
 
 typedef struct{
     const char* NAME = "MASTERWIFI12T";
-    const char* VERSION = "3.0";
+    const char* VERSION = "4.0";
     bool change = false;
     SYSTEM system;
     SLAVE slave;
@@ -346,13 +346,15 @@ class HomeHub{
         void timer_handler();
         void scene_handler();
         void notification_handler(String topic,String payload);
-        void serial_reading();
+
         //Sinric functions
-        void webSocketEvent(WStype_t type, uint8_t * payload, size_t length);
+        void webSocketEvent(WStype_t type, uint8_t * payload, size_t length); 
         void sinric_handler();
         void sinric_SPIFFS_read();
         void sinric_SPIFFS_write();
+        
         //Slave Handling Functions
+        void serial_reading();
         void slave_input_handler();
         void slave_output_handler();
         bool slave_handshake_handler();
