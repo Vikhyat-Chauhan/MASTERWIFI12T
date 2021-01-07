@@ -15,18 +15,13 @@ HomeHub::HomeHub(){
     //Initilize Serial Lines
     HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
     //Initiate memory system
-    //initiate_structures();
     initiate_memory();
+    if(master.system.SINRICAPI != ""){ //if the value is successfully read from memory than dont wait for mqtt sinric start
+      master.system.flag.sinric_restart = 1;
+    }
     initiate_devices(); //If Master has no Hardware dont initiate
     //Time Client
     timeClient.begin();
-    // Initlize sinric data
-    webSocket.begin("iot.sinric.com", 80, "/");
-    // event handler
-    webSocket.onEvent([this] (WStype_t type, uint8_t * payload, size_t length) { this->webSocketEvent(type, payload, length); });
-    webSocket.setAuthorization("apikey", MyApiKey);
-    // try again every 5000ms if connection has failed
-    webSocket.setReconnectInterval(5000);
 
     HomeHub_DEBUG_PRINT("");
     HomeHub_DEBUG_PRINT("STARTED");
@@ -85,10 +80,24 @@ void HomeHub::wifi_handler(){
 }
 
 void HomeHub::sinric_handler(){
-  webSocket.loop();
-  if(isConnected) {
-    uint64_t now = millis();
-    // Send heartbeat in order to avoid disconnections during ISP resetting IPs over night. Thanks @MacSass
+  if(master.system.flag.sinric_restart == 1){
+    HomeHub_DEBUG_PRINT("Initiating Sinric Websocket");
+    // Initlize sinric data
+    webSocket.begin("iot.sinric.com", 80, "/");
+    // event handler
+    webSocket.onEvent([this] (WStype_t type, uint8_t * payload, size_t length) { this->webSocketEvent(type, payload, length); });
+    char apikey[37];
+    (master.system.SINRICAPI).toCharArray(apikey, 37);
+    webSocket.setAuthorization("apikey",apikey );
+    // try again every 5000ms if connection has 
+    webSocket.setReconnectInterval(5000);
+    master.system.flag.sinric_restart = 2;
+    }
+  if(master.system.flag.sinric_restart == 2){
+    webSocket.loop();
+    if(isConnected) {
+      uint64_t now = millis();
+      // Send heartbeat in order to avoid disconnections during ISP resetting IPs over night. Thanks @MacSass
     if((now - heartbeatTimestamp) > HEARTBEAT_INTERVAL) {
         heartbeatTimestamp = now;
         webSocket.sendTXT("H");          
@@ -97,23 +106,66 @@ void HomeHub::sinric_handler(){
     if(master.slave.all_relay_change == true){
       for(int i=0;i<master.slave.RELAY_NUMBER;i++){
         if(master.slave.relay[i].change == true){
+          String data = "{\"deviceId\":\""+master.system.SINRICRELAYID[i]+"\",\"action\":\"setPowerState\",\"value\":\"";
           DynamicJsonDocument root(1024);
-          root["deviceId"] = master.slave.RELAY_SINRIC_ID[i];
+          root["deviceId"] = master.system.SINRICRELAYID[i];
           root["action"] = "setPowerState";
           if(master.slave.relay[i].current_state == true){
             root["value"] = "ON";
+            data = data +"ON"+"\"}";
           }
           else{
             root["value"] = "OFF";
+            data = data +"OFF"+"\"}";
           }
-          StreamString databuf;     
+          StreamString databuf;   
+          HomeHub_DEBUG_PRINT(data);
           serializeJson(root, databuf); 
           HomeHub_DEBUG_PRINT("Sending data to Sinric cloud");HomeHub_DEBUG_PRINT(databuf);
-          webSocket.sendTXT(databuf);
+          webSocket.sendTXT(data);
         }
       }
     }
   }
+  }
+}
+
+void HomeHub::sinric_SPIFFS_read() {
+  SPIFFS.begin();
+  File f = SPIFFS.open("/sinric.txt", "r");
+  if (!f) {
+    HomeHub_DEBUG_PRINT("Cant open sinric.txt file for reading");
+  } 
+  else {
+    while(f.available()) {
+        //Lets read line by line from the file
+        master.system.SINRICAPI  = f.readStringUntil('\n');
+        for(int i=0;i<RELAY_MAX_NUMBER;i++){
+          master.system.SINRICRELAYID[i] = f.readStringUntil('\n');
+        }
+    }
+  f.close();
+  }
+  SPIFFS.end();
+}
+
+void HomeHub::sinric_SPIFFS_write() {
+  SPIFFS.begin();
+  //opening "w" will truncate the file, so we know we only store our 1 value.
+  File f = SPIFFS.open("/sinric.txt", "w"); 
+
+  if (!f) {
+    HomeHub_DEBUG_PRINT("Cant open sinric.txt file for writing");
+  } 
+  else {
+    //Lets read line by line from the file
+    f.println(master.system.SINRICAPI);  
+    for(int i=0;i<RELAY_MAX_NUMBER;i++){
+      f.println(master.system.SINRICRELAYID[i]); 
+    }
+    f.close();
+  }
+  SPIFFS.end();
 }
 
 void HomeHub::device_handler(){
@@ -397,6 +449,8 @@ void HomeHub::initiate_memory(){
         eeRead(SCENE_MEMSPACE+(i*30),master.system.scene[i],master.system.flag.rom_external);
       }
     } 
+    //Reading Sinric data from SPIFFS
+    //sinric_SPIFFS_read();
 }
 
 //Initiate Devies
@@ -1210,6 +1264,30 @@ bool HomeHub::mqtt_input_handler(String topic,String payload){
                         }
                       }
                     }
+                    else if(sub1 == "sinricrelayid"){
+                      if(topic.length() > 0){
+                        String sub1 = topic.substring(0,topic.indexOf('/',0));
+                        topic.remove(0,topic.indexOf('/',0)+1);
+                        for(int i=0;i<RELAY_MAX_NUMBER;i++){                                                            //Select the exact scene number in the timers
+                          if((i+1) == sub1.toInt()){ 
+                            master.system.SINRICRELAYID[i] = payload;
+                            //Initiate sinric when the last relay information is successfully received
+                            if(i == (RELAY_MAX_NUMBER-1)){
+                              master.system.flag.sinric_restart = 1;
+                              sinric_SPIFFS_write();
+                            }
+                          }  
+                        }
+                      }
+                    }
+                    else if(sub1 == "sinricapi"){
+                      if(payload == ""){                       
+                        publish_mqtt(Device_Id_As_Publish_Topic+"system/sinricapi/",String(master.system.SINRICAPI),false);
+                      }
+                      else{   
+                         master.system.SINRICAPI = payload;
+                      }
+                    }
                     else{
                     }
                 }
@@ -1314,7 +1392,8 @@ void HomeHub::timesensor_handler(){
     master.system.clock.second = timeClient.getSeconds();     //Get Seconds from the NTP and put them into local Variables
     if(master.system.clock.second == 0){                      //Check for loss of synchronization between DS3231 and Internal Variables at every oth second 
       if(Clock.getMinute() != master.system.clock.minute){    //If the system variable minute is not same as NTP when we are online, lets sync the DS3231 clock.
-        //Serial.println("Setting time flag");
+        HomeHub_DEBUG_PRINT("Setting time sync flag");
+        HomeHub_DEBUG_PRINT(String(master.system.clock.minute));
         notification_handler("system/clock/sync/","1");
         master.system.flag.set_time = true;
       }
@@ -1595,21 +1674,21 @@ void HomeHub::webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         DynamicJsonDocument json(1024);
         deserializeJson(json, (char*) payload);      
         
-        String deviceId = json ["deviceId"];     
-        String action = json ["action"];
+        String deviceId = json ["deviceId"];  HomeHub_DEBUG_PRINT(deviceId);
+        String action = json ["action"];      HomeHub_DEBUG_PRINT(action);
         
         if(action == "setPowerState") { // Switch or Light
             String value = json ["value"];
             if(value == "ON") {
               for(int i=0;i<master.slave.RELAY_NUMBER;i++){
-                if(deviceId == master.slave.RELAY_SINRIC_ID[i]){
-                  master.slave.relay[i].current_state = bool(true);
+                if(deviceId == master.system.SINRICRELAYID[i]){
+                  master.slave.relay[i].current_state = bool(true); 
                 }
               }
             }
             else{
               for(int i=0;i<master.slave.RELAY_NUMBER;i++){
-                if(deviceId == master.slave.RELAY_SINRIC_ID[i]){
+                if(deviceId == master.system.SINRICRELAYID[i]){
                   master.slave.relay[i].current_state = bool(false);
                 }
               }

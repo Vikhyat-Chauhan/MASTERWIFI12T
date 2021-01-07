@@ -2,8 +2,8 @@
 *  Name: MASTERWIFI12T
 *  ChipId : NONE
 *  Date Created: 24/11/2020
-*  Date Latest Modified : 27/11/2020
-*  Version : 3.0
+*  Date Latest Modified : 08/01/2021
+*  Version : 4.0
 *  Description: 
 *  Updates : Added Button and Switch Support + Modified and Advanced Wifi Setup UI.
 *  Fixes : Fixed Serial Comminication and GroundNet API Issues. 
@@ -56,7 +56,6 @@
 #define BUTTON_MAX_NUMBER 1
 
 //Sinric data
-#define MyApiKey "1085badd-a084-432f-917c-c386a5bf092d" // TODO: Change to your sinric API Key. Your API Key is displayed on sinric.com dashboard
 #define HEARTBEAT_INTERVAL 300000 // 5 Minutes 
 
 #include "Arduino.h"
@@ -75,6 +74,7 @@
 #include <pgmspace.h>
 #include <Wire.h>
 #include <DS3231.h>
+#include "FS.h"
 #include "eepromi2c.h"
 #include <vector>
 
@@ -178,7 +178,6 @@ typedef struct{
     int8_t SENSOR_NUMBER = SENSOR_FIX_NUMBER;
     //int8_t BUTTON_PIN[BUTTON_FIX_NUMBER] = {12};
     //int8_t RELAY_PIN[RELAY_FIX_NUMBER] = {13,12,14,0};
-    const char* RELAY_SINRIC_ID[RELAY_MAX_NUMBER] = {"5fc0aebeaedf812fa2c1be74", "5fc0aec5aedf812fa2c1be76", "5fc0aecdaedf812fa2c1be78", "5fc0aed5aedf812fa2c1be7b","5fc0aedfaedf812fa2c1be7d"};
     bool all_relay_change = false;
     bool all_fan_change = false;
     bool all_sensor_change = false;
@@ -218,6 +217,7 @@ typedef struct{
     bool set_time = false;
     bool receiving_json = false;
     bool received_json = false;
+    int8_t sinric_restart = 0;
 }FLAG;
 
 typedef struct{
@@ -231,6 +231,8 @@ typedef struct{
   FLAG flag;
   TIMER timer[TIMER_NUMBER];
   SCENE scene[SCENE_NUMBER];
+  String SINRICAPI;//Fill it with a dummy value to prevent any error when mqtt sinric handshake is not done
+  String SINRICRELAYID[RELAY_MAX_NUMBER];
 }SYSTEM;
 
 typedef struct{
@@ -302,11 +304,11 @@ class HomeHub{
         char Device_Id_In_Char_As_Subscription_Topic[20];
         char Device_Id_In_Char_As_Publish_Topic[22];
         unsigned long previous_millis = 0;
-        const char* mqtt_server = "m12.cloudmqtt.com";//"api.sensesmart.in";
+        const char* mqtt_server = "15.206.160.77";//"m12.cloudmqtt.com";//"api.sensesmart.in";
         const char* mqtt_clientname;
-        const char* mqtt_serverid = "wbynzcri"; //"u_global";
-        const char* mqtt_serverpass = "uOIqIxMgf3Dl"; //"p_global";
-        const int mqtt_port = 12233;//1883;
+        const char* mqtt_serverid = "thenextmove";//"wbynzcri"; //"u_global";
+        const char* mqtt_serverpass = "t1n2m3@TNM";//"uOIqIxMgf3Dl"; //"p_global";
+        const int mqtt_port = 1883;//12233;//1883;
         MQTT_CALLBACK_SIGN;
 
         //Sinric variables 
@@ -348,6 +350,8 @@ class HomeHub{
         //Sinric functions
         void webSocketEvent(WStype_t type, uint8_t * payload, size_t length);
         void sinric_handler();
+        void sinric_SPIFFS_read();
+        void sinric_SPIFFS_write();
         //Slave Handling Functions
         void slave_input_handler();
         void slave_output_handler();

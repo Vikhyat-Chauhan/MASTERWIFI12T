@@ -145,7 +145,7 @@ class HomeHub{
       Serial.println(master.slave.relay[0].current_value);
       //master.slave.relay[0].current_value = 22;
       //eeWrite(0,master.slave.relay[0]);
-      eeRead(0,master.slave.relay[0]);
+      //eeRead(0,master.slave.relay[0]);
       Serial.println(master.slave.relay[0].current_value);
     }
   private:
