@@ -237,7 +237,7 @@ typedef struct{
 
 typedef struct{
     const char* NAME = "MASTERWIFI12T";
-    const char* VERSION = "4.0";
+    const char* VERSION = "5.0";
     bool change = false;
     SYSTEM system;
     SLAVE slave;
