@@ -15,14 +15,14 @@ HomeHub::HomeHub(){
     //Initilize Serial Lines
     HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
     //Initiate memory system
-    initiate_memory();
+    //initiate_memory();
     if(master.system.SINRICAPI != ""){ //if the value is successfully read from memory than dont wait for mqtt sinric start
-      master.system.flag.sinric_restart = 1;
+      master.system.flag.sinric_restart = 1; 
     }
     initiate_devices(); //If Master has no Hardware dont initiate
-    //Time Client
+    //Initiate Time Client
     timeClient.begin();
-
+    
     HomeHub_DEBUG_PRINT("");
     HomeHub_DEBUG_PRINT("STARTED");
 }
@@ -131,8 +131,8 @@ void HomeHub::sinric_handler(){
 }
 
 void HomeHub::sinric_SPIFFS_read() {
-  SPIFFS.begin();
-  File f = SPIFFS.open("/sinric.txt", "r");
+  LittleFS.begin();
+  File f = LittleFS.open("/sinric.txt", "r");
   if (!f) {
     HomeHub_DEBUG_PRINT("Cant open sinric.txt file for reading");
   } 
@@ -146,13 +146,13 @@ void HomeHub::sinric_SPIFFS_read() {
     }
   f.close();
   }
-  SPIFFS.end();
+  LittleFS.end();
 }
 
 void HomeHub::sinric_SPIFFS_write() {
-  SPIFFS.begin();
+  LittleFS.begin();
   //opening "w" will truncate the file, so we know we only store our 1 value.
-  File f = SPIFFS.open("/sinric.txt", "w"); 
+  File f = LittleFS.open("/sinric.txt", "w"); 
 
   if (!f) {
     HomeHub_DEBUG_PRINT("Cant open sinric.txt file for writing");
@@ -165,7 +165,41 @@ void HomeHub::sinric_SPIFFS_write() {
     }
     f.close();
   }
-  SPIFFS.end();
+  LittleFS.end();
+}
+
+void HomeHub::wifi_SPIFFS_read() {
+  LittleFS.begin();
+  File f = LittleFS.open("/wifi.txt", "r");
+  if (!f) {
+    HomeHub_DEBUG_PRINT("Cant open wifi.txt file for reading");
+  } 
+  else {
+    while(f.available()) {
+        //Lets read line by line from the file
+        String wifi_data  = f.readStringUntil('\n');
+        HomeHub_DEBUG_PRINT(wifi_data);
+        _esid = wifi_data.substring(0,wifi_data.indexOf('|'));
+        wifi_data = wifi_data.substring(wifi_data.indexOf('|')+1,wifi_data.length());
+        _epass = wifi_data.substring(0,wifi_data.indexOf('|'));
+        }
+    }
+  f.close();
+  }
+
+void HomeHub::wifi_SPIFFS_write(String ssid, String password) {
+  LittleFS.begin();
+  //opening "w" will truncate the file, so we know we only store our 1 value.
+  File f = LittleFS.open("/wifi.txt", "w"); 
+
+  if (!f) {
+    HomeHub_DEBUG_PRINT("Cant open wifi.txt file for writing");
+  } 
+  else {
+    //Lets read line by line from the file
+    f.println(ssid+"|"+password+"|");  
+    f.close();
+  }
 }
 
 void HomeHub::device_handler(){
@@ -518,16 +552,18 @@ void HomeHub::rom_write_page(unsigned int eeaddresspage, byte* data, byte length
 bool HomeHub::retrieve_wifi_data(){
   _esid = "";
   _epass = "";
+  wifi_SPIFFS_read();
+  /*
   for (int i = 0;i < 32;++i)
     {
       _esid += char(rom_read((_wifi_data_memspace+i),master.system.flag.rom_external)); //_esid += char(EEPROM.read(i));
-    }
+    }*/
   HomeHub_DEBUG_PRINT("SSID:");HomeHub_DEBUG_PRINT(String(_esid));
-  _epass = "";
+  /*_epass = "";
   for(int i = 32;i < 96;++i)
     {
       _epass += char(rom_read((_wifi_data_memspace+i),master.system.flag.rom_external)); //_epass += char(EEPROM.read(i));
-    }
+    }*/
   HomeHub_DEBUG_PRINT("PASS:");HomeHub_DEBUG_PRINT(String(_epass));
   if(_esid.length() > 1){
     return true;
@@ -703,7 +739,11 @@ bool HomeHub::manual_wifi_connect(const char* wifi, const char* pass){
 }
 
 void HomeHub::save_wifi_data(String ssid, String password){
-    HomeHub_DEBUG_PRINT("Saved Wifi data");
+    HomeHub_DEBUG_PRINT("Saving Wifi data");
+    HomeHub_DEBUG_PRINT(" SSID : "+ssid);
+    HomeHub_DEBUG_PRINT("Password : "+password);
+    wifi_SPIFFS_write(ssid,password);
+    /*
     for (int i = 0; i < ssid.length(); ++i)
       {
         rom_write(_wifi_data_memspace+i, ssid[i],master.system.flag.rom_external); //EEPROM.write(i, qsid[i]);
@@ -719,13 +759,15 @@ void HomeHub::save_wifi_data(String ssid, String password){
         //HomeHub_DEBUG_PORT.println(password[i]);
         _epass = password;
       }
+    */
 }
 
 void HomeHub::saved_wifi_dump(){
-  HomeHub_DEBUG_PRINT("clearing eeprom");
-  for (int i = 0; i < 96; ++i) {
-      rom_write(_wifi_data_memspace+i,0,master.system.flag.rom_external);// EEPROM.write(i, 0);
-  }
+  HomeHub_DEBUG_PRINT("clearing wifi data");
+  //for (int i = 0; i < 96; ++i) {
+      //rom_write(_wifi_data_memspace+i,0,master.system.flag.rom_external);// EEPROM.write(i, 0);
+  //}
+  wifi_SPIFFS_write("","");
   //EEPROM.commit();
 }
 
@@ -1774,7 +1816,7 @@ void HomeHub::slave_input_handler(){
         if(_slave_handshake_millis == 0){
             String request_handshake = "{\"NAME\":\"" + String(master.NAME) + "\",\"ROLE\":\"MASTER\",\"COMMAND\":\"HANDSHAKE\"}";
             HomeHub_SLAVE_DATA_PORT.print(request_handshake);
-            _slave_handshake_millis = millis() + 3000;
+            _slave_handshake_millis = millis() + 5000;
         }
         else{
             if(millis() > _slave_handshake_millis){

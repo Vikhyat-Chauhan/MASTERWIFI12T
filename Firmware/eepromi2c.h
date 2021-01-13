@@ -38,7 +38,7 @@ int eeRead(int ee, T& value,bool external){
     Wire.requestFrom(rom_address,sizeof(value));
     for (i = 0; i < sizeof(value); i++)
       if(Wire.available())
-        *p++ = Wire.read();
+        *p++ = Wire.read();delay(4);
     return i;
   }
   else{

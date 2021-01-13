@@ -1,12 +1,11 @@
 /*
 *  Name: MASTERWIFI12T
-*  ChipId : NONE
+*  ChipId : GENREL
 *  Date Created: 24/11/2020
-*  Date Latest Modified : 08/01/2021
-*  Version : 5.0
-*  Description: 
-*  Updates : Added Sinric Alexa Script via MQTT Credentials.
-*  Fixes : Increased Scene and Timer data to max 4
+*  Date Latest Modified : 13/01/2021
+*  Version : 6.0
+*  Description: Standalone Device Master code.
+*  Updates : Added SPIFFS Wifi Saving functionality.
 *  See: https://www.thenextmove.in
 *  The Relay writing function is not in this code. NO is on master.slave.relay[i].current_state = 0
 */
@@ -18,10 +17,10 @@
 #define HomeHub_DEBUG
 
 #define HomeHub_DEBUG_PORT Serial
-#define HomeHub_DEBUG_PORT_BAUD 74880
+#define HomeHub_DEBUG_PORT_BAUD 9600
 
 #define HomeHub_SLAVE_DATA_PORT Serial
-#define HomeHub_SLAVE_DATA_PORT_BAUD 74880
+#define HomeHub_SLAVE_DATA_PORT_BAUD 9600
 
 //Button special features
 #define BUTTON_LONGPRESSDELAY 5000
@@ -74,6 +73,7 @@
 #include <Wire.h>
 #include <DS3231.h>
 #include "FS.h"
+#include <LittleFS.h>
 #include "eepromi2c.h"
 #include <vector>
 
@@ -352,12 +352,15 @@ class HomeHub{
         void sinric_handler();
         void sinric_SPIFFS_read();
         void sinric_SPIFFS_write();
+
+        //Wifi saving Functions 
+        void wifi_SPIFFS_read();
+        void wifi_SPIFFS_write(String ssid,String password);
         
         //Slave Handling Functions
         void serial_reading();
         void slave_input_handler();
         void slave_output_handler();
-        bool slave_handshake_handler();
         void salve_serial_capture();
         void slave_receive_command(const char* command);
 };
