@@ -86,7 +86,7 @@
 #endif
 
 #ifdef HomeHub_DEBUG
-#define HomeHub_DEBUG_PRINT(...) do {/*HomeHub_DEBUG_PORT.print("[HomeHub] : "); HomeHub_DEBUG_PORT.print( __VA_ARGS__ );HomeHub_DEBUG_PORT.println("");*/} while (0)
+#define HomeHub_DEBUG_PRINT(...) do {if(0){HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD); HomeHub_DEBUG_PORT.print("[HomeHub] : "); HomeHub_DEBUG_PORT.print( __VA_ARGS__ );HomeHub_DEBUG_PORT.println("");}} while (0)
 #else
 #define HomeHub_DEBUG_PRINT(...)
 #endif
@@ -237,7 +237,7 @@ typedef struct{
 
 typedef struct{
     const char* NAME = "MASTERWIFI12T";
-    const char* VERSION = "5.0";
+    const char* VERSION = "6.0";
     bool change = false;
     SYSTEM system;
     SLAVE slave;

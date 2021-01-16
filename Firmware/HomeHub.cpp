@@ -12,8 +12,6 @@ WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800,60000);
 
 HomeHub::HomeHub(){
-    //Initilize Serial Lines
-    HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
     //Initiate memory system
     //initiate_memory();
     if(master.system.SINRICAPI != ""){ //if the value is successfully read from memory than dont wait for mqtt sinric start
@@ -41,7 +39,7 @@ void HomeHub::wifi_handler(){
     WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(_ssid_string);
     start_server();
-    manual_wifi_connect("OnePlus 3","0987654321");
+    manual_wifi_connect("thenextmove","0987654321");
   }
   else{
     if(WiFi.status() != 3){
@@ -1814,6 +1812,7 @@ void HomeHub::slave_input_handler(){
     //Proceed with receiving handshake or sync input from slave
     if(master.system.flag.slave_handshake == false){
         if(_slave_handshake_millis == 0){
+            HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD); //initiate debug port for communication and not before just to ignore garbage before communication
             String request_handshake = "{\"NAME\":\"" + String(master.NAME) + "\",\"ROLE\":\"MASTER\",\"COMMAND\":\"HANDSHAKE\"}";
             HomeHub_SLAVE_DATA_PORT.print(request_handshake);
             _slave_handshake_millis = millis() + 5000;
