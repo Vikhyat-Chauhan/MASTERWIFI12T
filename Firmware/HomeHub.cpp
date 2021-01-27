@@ -11,7 +11,7 @@ WiFiUDP ntpUDP;
 // update interval (in milliseconds, can be changed using setUpdateInterval() ).
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800,60000);
 
-HomeHub::HomeHub(){
+HomeHub::HomeHub(){ //HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
     //Initiate memory system
     //initiate_memory();
     if(master.system.SINRICAPI != ""){ //if the value is successfully read from memory than dont wait for mqtt sinric start
@@ -250,6 +250,7 @@ void HomeHub::device_handler(){
             all_fan_change_counter++;
         }
         else if(master.slave.fan[i].current_value != master.slave.fan[i].previous_value){
+            master.slave.fan[i].change = true;
             all_fan_change_counter++;
         }
         else{
@@ -781,7 +782,7 @@ void HomeHub::mqtt_handshake_handler(){
     }
     //Fan data
     for(int i=0;i<master.slave.FAN_NUMBER;i++){
-      publish_mqtt((Device_Id_As_Publish_Topic+"relay/"+String(i+1)+"/state/"),String(master.slave.relay[i].current_state),true);
+      publish_mqtt((Device_Id_As_Publish_Topic+"fan/"+String(i+1)+"/state/"),String(master.slave.fan[i].current_state),true);
       publish_mqtt((Device_Id_As_Publish_Topic+"fan/"+String(i+1)+"/value/"),String(master.slave.fan[i].current_value),true);
     }
     //Sensor data
@@ -940,19 +941,21 @@ bool HomeHub::mqtt_input_handler(String topic,String payload){
                     topic.remove(0,topic.indexOf('/',0)+1);
                     if(sub1 == "all"){
                                     if(topic.length() > 0){
-                                        String sub1 = topic.substring(0,topic.indexOf('/',0));
-                                        topic.remove(0,topic.indexOf('/',0)+1);
-                                        if(sub1 == "value"){
+                                      String sub1 = topic.substring(0,topic.indexOf('/',0));
+                                      topic.remove(0,topic.indexOf('/',0)+1);
+                                      if(sub1 == "state"){
                                             int value = payload.toInt();
-                                            if(value == 0){
+                                            if((value == 0) || (value ==1)){
                                                 for(int i=0;i<master.slave.FAN_NUMBER;i++){
-                                                    master.slave.fan[i].current_state = false;
+                                                    master.slave.fan[i].current_state = bool(value);
                                                     master.slave.fan[i].lastmqttcommand = true;
                                                 }
                                             }
-                                            else if((value > 0) && (value<11)){
+                                        }
+                                        if(sub1 == "value"){
+                                            int value = payload.toInt(); 
+                                            if((value > 0) && (value <5)){
                                                 for(int i=0;i<master.slave.FAN_NUMBER;i++){
-                                                    master.slave.fan[i].current_state = true;
                                                     master.slave.fan[i].current_value = value;
                                                     master.slave.fan[i].lastmqttcommand = true;
                                                 }
@@ -961,25 +964,29 @@ bool HomeHub::mqtt_input_handler(String topic,String payload){
                                     }
                                 }
                     else{
-                        for(int i=0;i<master.slave.FAN_NUMBER;i++){
+                        for(int i=0;i<master.slave.FAN_NUMBER;i++){ 
                             if((i+1) == sub1.toInt()){
                                 if(topic.length() > 0){
                                     String sub1 = topic.substring(0,topic.indexOf('/',0));
                                     topic.remove(0,topic.indexOf('/',0)+1);
-                                    int value = payload.toInt();
-                                    if(value == 0){
-                                            master.slave.fan[i].current_state = false;
+                                    if(sub1 == "state"){      
+                                        int value = payload.toInt();
+                                        if((value == 0) || (value == 1)){
+                                            master.slave.fan[i].current_state = bool(value);
                                             master.slave.fan[i].lastmqttcommand = true;
+                                        }
                                     }
-                                    else if((value > 0) && (value<11)){
-                                            master.slave.fan[i].current_state = true;
-                                            master.slave.fan[i].current_value = value;
-                                            master.slave.fan[i].lastmqttcommand = true;
+                                    if(sub1 == "value"){           
+                                            int value = payload.toInt(); 
+                                            if((value > 0) && (value <5)){ 
+                                              master.slave.fan[i].current_value = value;
+                                              master.slave.fan[i].lastmqttcommand = true;
+                                            }
+                                        }
                                     }
+                                  }
                                 }
                             }
-                        }
-                    }
                 }
             }
             if(sub1 == "system"){
@@ -1364,14 +1371,8 @@ void HomeHub::mqtt_output_handler(){
         if(master.slave.all_fan_change == true){
           for(int i=0;i<master.slave.FAN_NUMBER;i++){
               if(master.slave.fan[i].change == true){
-                  topic = Device_Id_As_Publish_Topic + "fan/" + String(i+1) + "/value/";
-                  if(master.slave.fan[i].current_state == false){ // Fan is off by state sending a 0 value instead saved fan value
-                      payload = "0";
-                  }
-                  else{ // value of fan state is true then send the current value
-                      payload = String(master.slave.fan[i].current_value);
-                  }
-                  publish_mqtt(topic,payload,true);
+                publish_mqtt((Device_Id_As_Publish_Topic + "fan/" + String(i+1) + "/state/"),String(master.slave.fan[i].current_state),true);
+                publish_mqtt((Device_Id_As_Publish_Topic + "fan/" + String(i+1) + "/value/"),String(master.slave.fan[i].current_value),true);
               }
           }
       }
@@ -1432,9 +1433,9 @@ void HomeHub::timesensor_handler(){
     master.system.clock.second = timeClient.getSeconds();     //Get Seconds from the NTP and put them into local Variables
     if(master.system.clock.second == 0){                      //Check for loss of synchronization between DS3231 and Internal Variables at every oth second 
       if(Clock.getMinute() != master.system.clock.minute){    //If the system variable minute is not same as NTP when we are online, lets sync the DS3231 clock.
-        HomeHub_DEBUG_PRINT("Setting time sync flag");
-        HomeHub_DEBUG_PRINT(String(master.system.clock.minute));
-        notification_handler("system/clock/sync/","1");
+        //HomeHub_DEBUG_PRINT("Setting time sync flag");
+        //HomeHub_DEBUG_PRINT(String(master.system.clock.minute));
+        //notification_handler("system/clock/sync/","1");
         master.system.flag.set_time = true;
       }
     }
@@ -1770,12 +1771,12 @@ void HomeHub::slave_output_handler(){
                 }
             //}
             }
-            if(master.slave.all_fan_change == true){
+            if(master.slave.all_fan_change == true){ 
                 //if((master.slave.all_fan_lastslavecommand == false)){
                 JsonArray fan = device.createNestedArray("FAN");
                 for(int i=0;i<master.slave.FAN_NUMBER;i++){
                   JsonObject fan_x = fan.createNestedObject();
-                    if(master.slave.fan[i].change == true){
+                    if(master.slave.fan[i].change == true){ 
                         //if((master.slave.fan[i].lastslavecommand == false)){
                             fan_x["STATE"] = master.slave.fan[i].current_state;
                             fan_x["VALUE"] = master.slave.fan[i].current_value;
