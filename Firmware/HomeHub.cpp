@@ -11,7 +11,7 @@ WiFiUDP ntpUDP;
 // update interval (in milliseconds, can be changed using setUpdateInterval() ).
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800,60000);
 
-HomeHub::HomeHub(){ //HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
+HomeHub::HomeHub(){ HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
     //Initiate memory system
     //initiate_memory();
     if(master.system.SINRICAPI != ""){ //if the value is successfully read from memory than dont wait for mqtt sinric start
