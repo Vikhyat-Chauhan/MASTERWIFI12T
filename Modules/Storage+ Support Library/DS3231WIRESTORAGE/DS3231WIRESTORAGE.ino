@@ -14,8 +14,8 @@ struct config
 HomeHub homehub;
 
 void setup(){
-  //Serial.begin(115200);
-  //Serial.println("STARTED");
+  Serial.begin(115200);
+  Serial.println("STARTED");
   
   /*
   //config some of the variables during to be saved. 
@@ -26,7 +26,7 @@ void setup(){
   config.attempts[0] = 0;config.attempts[1] = 1;config.attempts[2] = 2;
   eeWrite(0,config);*/
   
-  //delay (100);
+  delay (2000);
   //eeWrite(0,homehub.master);
 }
 
@@ -35,6 +35,7 @@ void loop(){
   //Serial.println(homehub.master.test);
   //eeRead(0,homehub.master);
   //Serial.println(homehub.master.test);
+  testing();
   delay(500000);
 }
 

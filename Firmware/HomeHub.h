@@ -3,9 +3,9 @@
 *  ChipId : GENREL
 *  Date Created: 24/11/2020
 *  Date Latest Modified : 28/01/2021
-*  Version : 8.0
+*  Version : 8.1
 *  Description: Standalone Device Master code.
-*  Updates : Fixed and tested Timer and scenes memory saving in EEPROM.
+*  Updates : Changed Status Led and limited slave serial output to binary not true or false.
 *  See: https://www.thenextmove.in
 *  The Relay writing function is not in this code. NO is on master.slave.relay[i].current_state = 0
 */
@@ -86,7 +86,7 @@
 #endif
 
 #ifdef HomeHub_DEBUG
-#define HomeHub_DEBUG_PRINT(...) do {if(1){HomeHub_DEBUG_PORT.print("[HomeHub] : "); HomeHub_DEBUG_PORT.print( __VA_ARGS__ );HomeHub_DEBUG_PORT.println("");}} while (0)
+#define HomeHub_DEBUG_PRINT(...) do {if(0){HomeHub_DEBUG_PORT.print("[HomeHub] : "); HomeHub_DEBUG_PORT.print( __VA_ARGS__ );HomeHub_DEBUG_PORT.println("");}} while (0)
 #else
 #define HomeHub_DEBUG_PRINT(...)
 #endif

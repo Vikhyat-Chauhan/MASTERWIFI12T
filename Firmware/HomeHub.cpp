@@ -11,7 +11,7 @@ WiFiUDP ntpUDP;
 // update interval (in milliseconds, can be changed using setUpdateInterval() ).
 NTPClient timeClient(ntpUDP, "pool.ntp.org", 19800,60000);
 
-HomeHub::HomeHub(){ HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
+HomeHub::HomeHub(){ //HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD);
     //Initiate memory system
     //initiate_memory();
     if(master.system.SINRICAPI != ""){ //if the value is successfully read from memory than dont wait for mqtt sinric start
@@ -1764,7 +1764,7 @@ void HomeHub::slave_output_handler(){
                   JsonObject relay_x = relay.createNestedObject();
                     if(master.slave.relay[i].change == true){
                         //if((master.slave.relay[i].lastslavecommand == false)){
-                            relay_x["STATE"] = master.slave.relay[i].current_state;
+                            relay_x["STATE"] = int(master.slave.relay[i].current_state);
                             relay_x["VALUE"] = master.slave.relay[i].current_value;
                         //}
                     }
@@ -1778,7 +1778,7 @@ void HomeHub::slave_output_handler(){
                   JsonObject fan_x = fan.createNestedObject();
                     if(master.slave.fan[i].change == true){ 
                         //if((master.slave.fan[i].lastslavecommand == false)){
-                            fan_x["STATE"] = master.slave.fan[i].current_state;
+                            fan_x["STATE"] = int(master.slave.fan[i].current_state);
                             fan_x["VALUE"] = master.slave.fan[i].current_value;
                         //}
                     }
