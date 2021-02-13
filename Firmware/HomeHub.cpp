@@ -1990,7 +1990,7 @@ void HomeHub::slave_receive_command(const char* command){
         HomeHub_DEBUG_PRINT("Unsupported Command");
     }
 }
-
+/*
 void HomeHub::salve_serial_capture(){
     //Read incomming bit per cycle and decode the incomming commands
     if(HomeHub_SLAVE_DATA_PORT.available()) {
@@ -2017,4 +2017,54 @@ void HomeHub::salve_serial_capture(){
             master.system.flag.received_json = true;
         }
     }
+} */
+
+void HomeHub::salve_serial_capture(){ 
+  //Read incomming bit per cycle and decode the incomming commands
+  if((master.system.flag.receiving_json == true) && ((millis()-json_timeout_limit)>200)){ //Serial.println("Timeout exceeded");
+      //in_command_buffer = IN_DATA_PORT_command;               
+      _SLAVE_DATA_PORT_command = "";
+      _SLAVE_DATA_PORT_counter = 0;
+      HomeHub_SLAVE_DATA_PORT.flush();
+      master.system.flag.receiving_json = false;
+      master.system.flag.received_json = true;
+  } 
+    if(HomeHub_SLAVE_DATA_PORT.available()) { //Serial.println(IN_DATA_PORT_counter);
+        char c = HomeHub_SLAVE_DATA_PORT.read();
+        int c_in_int = int(c); //Serial.print(c_in_int); Serial.print("\t"); Serial.println(c);
+        if(((c_in_int >46) && (c_in_int <57)) ||  ((c_in_int >64) && (c_in_int <91)) || (c_in_int == 123) || (c_in_int == 125) || (c_in_int == 91) || (c_in_int == 93) || (c_in_int == 34) || (c_in_int == 44) || (c_in_int == 58) || (c_in_int == 120)){ 
+        //Serial.print(c_in_int); Serial.print("\t"); Serial.println(c);
+        if (c == '{'){ //Serial.println("Received {"); 
+            if(_SLAVE_DATA_PORT_counter==0){
+                master.system.flag.receiving_json = true;
+                json_timeout_limit = millis();
+                _SLAVE_DATA_PORT_command = "";
+            }
+            _SLAVE_DATA_PORT_counter+=1;
+            _SLAVE_DATA_PORT_command += c;
+            checksum += int(c);
+        }
+        else if (c == '}'){  //Serial.println("Received }"); 
+            _SLAVE_DATA_PORT_counter+=-1;
+            _SLAVE_DATA_PORT_command += c;
+            checksum += int(c);
+        }
+        else{                                    //Serial.println("adding data");    
+            _SLAVE_DATA_PORT_command += c;
+            checksum += int(c);
+        }
+        if(_SLAVE_DATA_PORT_counter == 0 && master.system.flag.receiving_json == true){ status_led_blink(50); checksum = 0;//Serial.println(millis()-json_timeout_limit);//Serial.print(checksum);Serial.print('x'); checksum = 0; //Serial.println(millis()-json_timeout_limit);  Serial.println("Received data");
+            _slave_command_buffer = _SLAVE_DATA_PORT_command; 
+            _SLAVE_DATA_PORT_command = "";
+            master.system.flag.receiving_json = false;
+            master.system.flag.received_json = true;
+        }
+        } 
+    }
+}
+
+void HomeHub::status_led_blink(int dela){
+  digitalWrite(2,HIGH);
+  delay(dela);
+  digitalWrite(2,LOW);
 }

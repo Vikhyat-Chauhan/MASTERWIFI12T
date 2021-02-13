@@ -323,6 +323,8 @@ class HomeHub{
         unsigned int _SLAVE_DATA_PORT_counter = 0;
         String _SLAVE_DATA_PORT_command = "";
         String _slave_command_buffer = "";          //Has limited information capacity(Name,role,command,4R2F1S)
+        unsigned long json_timeout_limit = 0;
+        unsigned long checksum = 0;
     
         //millis variables for async tasks
         unsigned long _slave_handshake_millis = 0;
@@ -363,6 +365,8 @@ class HomeHub{
         void slave_output_handler();
         void salve_serial_capture();
         void slave_receive_command(const char* command);
+
+        void status_led_blink(int dela);
 };
 
 #endif
