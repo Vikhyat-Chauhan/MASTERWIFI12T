@@ -1814,9 +1814,11 @@ void HomeHub::slave_input_handler(){
     if(master.system.flag.slave_handshake == false){
         if(_slave_handshake_millis == 0){
             HomeHub_DEBUG_PORT.begin(HomeHub_DEBUG_PORT_BAUD); //initiate debug port for communication and not before just to ignore garbage before communication
+            Serial.setRxBufferSize(1024);
+            HomeHub_DEBUG_PORT.flush();
             String request_handshake = "{\"NAME\":\"" + String(master.NAME) + "\",\"ROLE\":\"MASTER\",\"COMMAND\":\"HANDSHAKE\"}";
             HomeHub_SLAVE_DATA_PORT.print(request_handshake);
-            _slave_handshake_millis = millis() + 5000;
+            _slave_handshake_millis = millis() + 2000;
         }
         else{
             if(millis() > _slave_handshake_millis){
@@ -1990,7 +1992,7 @@ void HomeHub::slave_receive_command(const char* command){
         HomeHub_DEBUG_PRINT("Unsupported Command");
     }
 }
-/*
+
 void HomeHub::salve_serial_capture(){
     //Read incomming bit per cycle and decode the incomming commands
     if(HomeHub_SLAVE_DATA_PORT.available()) {
@@ -2017,8 +2019,8 @@ void HomeHub::salve_serial_capture(){
             master.system.flag.received_json = true;
         }
     }
-} */
-
+}
+/*
 void HomeHub::salve_serial_capture(){ 
   //Read incomming bit per cycle and decode the incomming commands
   if((master.system.flag.receiving_json == true) && ((millis()-json_timeout_limit)>200)){ //Serial.println("Timeout exceeded");
@@ -2062,6 +2064,7 @@ void HomeHub::salve_serial_capture(){
         } 
     }
 }
+*/
 
 void HomeHub::status_led_blink(int dela){
   digitalWrite(2,HIGH);
