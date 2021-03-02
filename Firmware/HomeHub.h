@@ -42,7 +42,7 @@
 #define RELAY_MEMSPACE 100
 
 //Fan
-#define FAN_FIX_NUMBER 1
+#define FAN_FIX_NUMBER 2
 #define FAN_MAX_NUMBER 5
 
 //Sensor
@@ -64,7 +64,7 @@
 #include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
 #include <WiFiClient.h>
-#include <PubSubClient.h>
+#include "PubSubClient.h"
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ESP8266WiFi.h>
@@ -337,7 +337,9 @@ class HomeHub{
         int mdns_handler();
         bool mqtt_input_handler(String topic,String payload);
         void mqtt_output_handler();
+        void mqtt_output_handler_v2();
         void mqtt_handshake_handler();
+        void mqtt_handshake_handler_v2();
         void device_handler();
         void start_server();
         bool stop_server();
@@ -367,6 +369,8 @@ class HomeHub{
         void slave_receive_command(const char* command);
 
         void status_led_blink(int dela);
+
+        void slave_output_handler_json();
 };
 
 #endif

@@ -29,7 +29,7 @@ void HomeHub::asynctasks(){
   timesensor_handler();
   timer_handler();
   scene_handler();
-  wifi_handler();
+  wifi_handler(); 
   device_handler(); // Should be only placed at end of each loop since it monitors changes 
 }
 
@@ -68,6 +68,7 @@ void HomeHub::wifi_handler(){
             mqttclient.loop();
             slave_output_handler();
             mqtt_output_handler();
+            mqtt_output_handler_v2();
         }
         //Sinric handler
         sinric_handler();
@@ -119,6 +120,7 @@ void HomeHub::sinric_handler(){
           StreamString databuf;   
           HomeHub_DEBUG_PRINT(data);
           serializeJson(root, databuf); 
+          root.clear();
           HomeHub_DEBUG_PRINT("Sending data to Sinric cloud");HomeHub_DEBUG_PRINT(databuf);
           webSocket.sendTXT(data);
         }
@@ -829,6 +831,99 @@ void HomeHub::mqtt_handshake_handler(){
  }
 }
 
+void HomeHub::mqtt_handshake_handler_v2(){
+  DynamicJsonDocument doc(4000);
+  doc["NAME"] = "MASTERWIFI12T";
+  doc["VERSION"] = 8;
+  
+  //System Array
+  JsonObject SYSTEM = doc.createNestedObject("SYSTEM");
+  
+  JsonObject SYSTEM_CLOCK = SYSTEM.createNestedObject("CLOCK");
+  SYSTEM_CLOCK["DATE"] = master.system.clock.date;
+  SYSTEM_CLOCK["MONTH"] = master.system.clock.month;
+  SYSTEM_CLOCK["YEAR"] = master.system.clock.year;
+  SYSTEM_CLOCK["WEEK"] = master.system.clock.week;
+  SYSTEM_CLOCK["HOUR"] = master.system.clock.hour;
+  SYSTEM_CLOCK["MINUTE"] = master.system.clock.minute;
+  SYSTEM_CLOCK["SECOND"] = master.system.clock.second;
+  //System timer objects
+  JsonArray SYSTEM_TIMER = SYSTEM.createNestedArray("TIMER");
+  
+  for(int i=0;i<TIMER_NUMBER;i++){
+    JsonObject SYSTEM_TIMER_0 = SYSTEM_TIMER.createNestedObject();
+    SYSTEM_TIMER_0["STATE"] = int(master.system.timer[i].current_state);
+
+    JsonObject SYSTEM_TIMER_0_ONTIMER = SYSTEM_TIMER_0.createNestedObject("ONTIMER");
+    SYSTEM_TIMER_0_ONTIMER["STATE"] = int(master.system.timer[i].ontimer.current_state);
+    SYSTEM_TIMER_0_ONTIMER["HOUR"] = master.system.timer[i].ontimer.hour;
+    SYSTEM_TIMER_0_ONTIMER["MINUTE"] = master.system.timer[i].ontimer.minute;
+    SYSTEM_TIMER_0_ONTIMER["WEEK"] = master.system.timer[i].ontimer.week;
+
+    JsonObject SYSTEM_TIMER_0_OFFTIMER = SYSTEM_TIMER_0.createNestedObject("OFFTIMER");
+    SYSTEM_TIMER_0_OFFTIMER["STATE"] = int(master.system.timer[i].offtimer.current_state);
+    SYSTEM_TIMER_0_OFFTIMER["HOUR"] = master.system.timer[i].offtimer.hour;
+    SYSTEM_TIMER_0_OFFTIMER["MINUTE"] = master.system.timer[i].offtimer.minute;
+    SYSTEM_TIMER_0_OFFTIMER["WEEK"] = master.system.timer[i].offtimer.week;
+
+    JsonArray SYSTEM_TIMER_0_relay = SYSTEM_TIMER_0.createNestedArray("RELAY");
+    for(int j=0;j<master.slave.RELAY_NUMBER;j++){
+      SYSTEM_TIMER_0_relay.add(int(master.system.timer[i].relay[j]));
+    }
+  }
+  
+  //System Scene objects
+  JsonArray SYSTEM_SCENE = SYSTEM.createNestedArray("SCENE");
+  
+  for(int i=0;i<SCENE_NUMBER;i++){
+    JsonObject SYSTEM_SCENE_0 = SYSTEM_SCENE.createNestedObject();
+    SYSTEM_SCENE_0["STATE"] = int(master.system.scene[i].current_state);
+    SYSTEM_SCENE_0["TRIGGER"] = int(master.system.scene[i].trigger);
+
+    JsonArray SYSTEM_SCENE_0_relay = SYSTEM_SCENE_0.createNestedArray("RELAY");
+    for(int j=0;j<master.slave.RELAY_NUMBER;j++){
+      SYSTEM_SCENE_0_relay.add(int(master.system.scene[i].relay[j]));
+    }
+    
+    JsonArray SYSTEM_SCENE_0_fan = SYSTEM_SCENE_0.createNestedArray("FAN");
+    for(int j=0;j<master.slave.FAN_NUMBER;j++){
+      SYSTEM_SCENE_0_fan.add(int(master.system.scene[i].fan[j]));
+    }
+  }
+  
+  //Slave Array done
+  JsonObject SLAVE = doc.createNestedObject("SLAVE");
+  //SLAVE["NAME"] = String(master.slave.NAME);
+  SLAVE["RELAY_NUMBER"] = master.slave.RELAY_NUMBER;
+  SLAVE["FAN_NUMBER"] = master.slave.FAN_NUMBER;
+  SLAVE["SENSOR_NUMBER"] = master.slave.SENSOR_NUMBER;
+
+  JsonArray SLAVE_RELAY_ARRAY = SLAVE.createNestedArray("RELAY");
+  for(int i=0;i<master.slave.RELAY_NUMBER;i++){
+    JsonObject SLAVE_RELAY = SLAVE_RELAY_ARRAY.createNestedObject();
+    SLAVE_RELAY["STATE"] = int(master.slave.relay[i].current_state);
+    SLAVE_RELAY["VALUE"] = master.slave.relay[i].current_value;
+  }
+            
+  JsonArray SLAVE_FAN_ARRAY = SLAVE.createNestedArray("FAN");
+  for(int i=0;i<master.slave.FAN_NUMBER;i++){
+    JsonObject SLAVE_FAN = SLAVE_FAN_ARRAY.createNestedObject();
+    SLAVE_FAN["STATE"] = int(master.slave.fan[i].current_state);
+    SLAVE_FAN["VALUE"] = master.slave.fan[i].current_value;
+  }
+  
+  JsonArray SLAVE_SENSOR_ARRAY = SLAVE.createNestedArray("SENSOR");
+  for(int i=0;i<master.slave.SENSOR_NUMBER;i++){
+    JsonObject SLAVE_SENSOR = SLAVE_SENSOR_ARRAY.createNestedObject();
+    SLAVE_SENSOR["TYPE"] = String(master.slave.sensor[i].type);
+    SLAVE_SENSOR["VALUE"] = master.slave.sensor[i].current_value;
+  }
+  String message;
+  serializeJson(doc, message);
+  doc.clear();
+  publish_mqtt(("devices/"+Device_Id_As_Publish_Topic),message,true); 
+}
+
 bool HomeHub::initiate_mqtt(){
     functionstate.initiate_mqtt = true;
     //Mqtt String to char* Conversions
@@ -846,6 +941,7 @@ bool HomeHub::initiate_mqtt(){
         mqttclient.subscribe(Device_Id_In_Char_As_Subscription_Topic);
         publish_mqtt(topic,"0",true);
         mqtt_handshake_handler();
+        mqtt_handshake_handler_v2();
         return 's';
     } else {
         HomeHub_DEBUG_PRINT("Failed to connect to mqtt server, rc=");
@@ -1341,6 +1437,7 @@ bool HomeHub::mqtt_input_handler(String topic,String payload){
             }
             if(sub1 == "information"){
               mqtt_handshake_handler();
+              mqtt_handshake_handler_v2();
               HomeHub_DEBUG_PRINT("Handshake Flag Sent.");
             }
         }
@@ -1422,6 +1519,100 @@ void HomeHub::mqtt_output_handler(){
         }
       }
     }
+  }
+}
+
+void HomeHub::mqtt_output_handler_v2(){
+  if(master.slave.change == true){
+  DynamicJsonDocument doc(4000);
+  doc["NAME"] = "MASTERWIFI12T";
+  doc["VERSION"] = 8;
+  
+  //System Array
+  JsonObject SYSTEM = doc.createNestedObject("SYSTEM");
+  
+  JsonObject SYSTEM_CLOCK = SYSTEM.createNestedObject("CLOCK");
+  SYSTEM_CLOCK["DATE"] = master.system.clock.date;
+  SYSTEM_CLOCK["MONTH"] = master.system.clock.month;
+  SYSTEM_CLOCK["YEAR"] = master.system.clock.year;
+  SYSTEM_CLOCK["WEEK"] = master.system.clock.week;
+  SYSTEM_CLOCK["HOUR"] = master.system.clock.hour;
+  SYSTEM_CLOCK["MINUTE"] = master.system.clock.minute;
+  SYSTEM_CLOCK["SECOND"] = master.system.clock.second;
+  //System timer objects
+  JsonArray SYSTEM_TIMER = SYSTEM.createNestedArray("TIMER");
+  for(int i=0;i<TIMER_NUMBER;i++){
+    JsonObject SYSTEM_TIMER_0 = SYSTEM_TIMER.createNestedObject();
+    SYSTEM_TIMER_0["STATE"] = int(master.system.timer[i].current_state);
+
+    JsonObject SYSTEM_TIMER_0_ONTIMER = SYSTEM_TIMER_0.createNestedObject("ONTIMER");
+    SYSTEM_TIMER_0_ONTIMER["STATE"] = int(master.system.timer[i].ontimer.current_state);
+    SYSTEM_TIMER_0_ONTIMER["HOUR"] = master.system.timer[i].ontimer.hour;
+    SYSTEM_TIMER_0_ONTIMER["MINUTE"] = master.system.timer[i].ontimer.minute;
+    SYSTEM_TIMER_0_ONTIMER["WEEK"] = master.system.timer[i].ontimer.week;
+
+    JsonObject SYSTEM_TIMER_0_OFFTIMER = SYSTEM_TIMER_0.createNestedObject("OFFTIMER");
+    SYSTEM_TIMER_0_OFFTIMER["STATE"] = int(master.system.timer[i].offtimer.current_state);
+    SYSTEM_TIMER_0_OFFTIMER["HOUR"] = master.system.timer[i].offtimer.hour;
+    SYSTEM_TIMER_0_OFFTIMER["MINUTE"] = master.system.timer[i].offtimer.minute;
+    SYSTEM_TIMER_0_OFFTIMER["WEEK"] = master.system.timer[i].offtimer.week;
+
+    JsonArray SYSTEM_TIMER_0_relay = SYSTEM_TIMER_0.createNestedArray("RELAY");
+    for(int j=0;j<master.slave.RELAY_NUMBER;j++){
+      SYSTEM_TIMER_0_relay.add(int(master.system.timer[i].relay[j]));
+    }
+  }
+  
+  //System Scene objects
+  JsonArray SYSTEM_SCENE = SYSTEM.createNestedArray("SCENE");
+ 
+  for(int i=0;i<SCENE_NUMBER;i++){
+    JsonObject SYSTEM_SCENE_0 = SYSTEM_SCENE.createNestedObject();
+    SYSTEM_SCENE_0["STATE"] = int(master.system.scene[i].current_state);
+    SYSTEM_SCENE_0["TRIGGER"] = int(master.system.scene[i].trigger);
+
+    JsonArray SYSTEM_SCENE_0_relay = SYSTEM_SCENE_0.createNestedArray("RELAY");
+    for(int j=0;j<master.slave.RELAY_NUMBER;j++){
+      SYSTEM_SCENE_0_relay.add(int(master.system.scene[i].relay[j]));
+    }
+    
+    JsonArray SYSTEM_SCENE_0_fan = SYSTEM_SCENE_0.createNestedArray("FAN");
+    for(int j=0;j<master.slave.FAN_NUMBER;j++){
+      SYSTEM_SCENE_0_fan.add(int(master.system.scene[i].fan[j]));
+    }
+  }
+  
+  //Slave Array done
+  JsonObject SLAVE = doc.createNestedObject("SLAVE");
+  //SLAVE["NAME"] = String(master.slave.NAME);
+  SLAVE["RELAY_NUMBER"] = master.slave.RELAY_NUMBER;
+  SLAVE["FAN_NUMBER"] = master.slave.FAN_NUMBER;
+  SLAVE["SENSOR_NUMBER"] = master.slave.SENSOR_NUMBER;
+
+  JsonArray SLAVE_RELAY_ARRAY = SLAVE.createNestedArray("RELAY");
+  for(int i=0;i<master.slave.RELAY_NUMBER;i++){
+    JsonObject SLAVE_RELAY = SLAVE_RELAY_ARRAY.createNestedObject();
+    SLAVE_RELAY["STATE"] = int(master.slave.relay[i].current_state);
+    SLAVE_RELAY["VALUE"] = master.slave.relay[i].current_value;
+  }
+            
+  JsonArray SLAVE_FAN_ARRAY = SLAVE.createNestedArray("FAN");
+  for(int i=0;i<master.slave.FAN_NUMBER;i++){
+    JsonObject SLAVE_FAN = SLAVE_FAN_ARRAY.createNestedObject();
+    SLAVE_FAN["STATE"] = int(master.slave.fan[i].current_state);
+    SLAVE_FAN["VALUE"] = master.slave.fan[i].current_value;
+  }
+  
+  JsonArray SLAVE_SENSOR_ARRAY = SLAVE.createNestedArray("SENSOR");
+  for(int i=0;i<master.slave.SENSOR_NUMBER;i++){
+    JsonObject SLAVE_SENSOR = SLAVE_SENSOR_ARRAY.createNestedObject();
+    SLAVE_SENSOR["TYPE"] = String(master.slave.sensor[i].type);
+    SLAVE_SENSOR["VALUE"] = master.slave.sensor[i].current_value;
+  }
+  String message;
+  serializeJson(doc, message);
+  doc.clear();
+  publish_mqtt(("devices/"+Device_Id_As_Publish_Topic),message,true); 
   }
 }
 
@@ -1743,6 +1934,7 @@ void HomeHub::webSocketEvent(WStype_t type, uint8_t * payload, size_t length) {
         else if (action == "test") {
             HomeHub_DEBUG_PRINT("Received test command from sinric.com");
         }
+        json.clear();
       }
       break;
     case WStype_BIN:
@@ -1804,6 +1996,7 @@ void HomeHub::slave_output_handler(){
               doc["COMMAND"] = command;
             }
             serializeJson(doc, HomeHub_SLAVE_DATA_PORT);
+            doc.clear();
         }
     }
 }
@@ -1884,10 +2077,12 @@ void HomeHub::slave_input_handler(){
                     master.system.flag.slave_handshake = true;
                     //Publish MQTT handshake to the cloud 
                     mqtt_handshake_handler();
+                    mqtt_handshake_handler_v2();
                   }
                   else{
                     HomeHub_DEBUG_PRINT("Right Handshake Commands Not received.");
                   } 
+                  doc.clear();
                 }
                 _slave_handshake_millis = 0;
             }
